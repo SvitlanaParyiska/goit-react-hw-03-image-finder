@@ -1,6 +1,7 @@
 import React from 'react';
 import { Component } from 'react';
 import PropTypes from 'prop-types';
+import Notiflix from 'notiflix';
 import {
   Header,
   SearchForm,
@@ -21,7 +22,7 @@ export class Searchbar extends Component {
   handleSubmit = event => {
     event.preventDefault();
     if (this.state.searchItem.trim() === '') {
-      alert('Fill in the search param!');
+      Notiflix.Report.info('Fill in the search param!');
     }
     this.props.onSubmit(this.state.searchItem);
     this.setState({ searchItem: '' });

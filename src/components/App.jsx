@@ -1,12 +1,12 @@
 import { Component } from 'react';
+import Notiflix from 'notiflix';
+import { getAllImages } from 'api/images';
 import { Searchbar } from './Searchbar/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Loader from './Loader/Loader';
 import Button from './Button/Button';
 import { Modal } from './Modal/Modal';
 import { Body } from './App.styled';
-
-const API_KEY = '38612355-8184a077488cb30f59b3deec8';
 
 export class App extends Component {
   state = {
@@ -15,25 +15,29 @@ export class App extends Component {
     loading: false,
     isShowModal: false,
     page: 1,
+    totalSearchItems: 0,
     showPicture: '',
   };
 
   componentDidUpdate(_, prevState) {
     const { searchItem, page } = this.state;
+
     if (prevState.searchItem !== searchItem || page !== prevState.page) {
+      if (!searchItem) {
+        Notiflix.Report.info('Fill in the search param!');
+        return;
+      }
       this.setState({ loading: true });
-      fetch(
-        `https://pixabay.com/api/?q=${searchItem}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`
-      )
-        .then(resp => resp.json())
+      getAllImages(searchItem, page)
         .then(data =>
           this.setState({
             searchArr:
               page === 1 ? data.hits : [...prevState.searchArr, ...data.hits],
+            totalSearchItems: data.totalHits,
           })
         )
-        .catch(error => console.log(error))
-        .finally(this.setState({ loading: false }));
+        .catch(error => Notiflix.Report.failure(error.message))
+        .finally(() => this.setState({ loading: false }));
     }
   }
 
@@ -54,13 +58,21 @@ export class App extends Component {
   };
 
   render() {
+    const {
+      searchItem,
+      searchArr,
+      loading,
+      isShowModal,
+      totalSearchItems,
+      showPicture,
+    } = this.state;
     return (
       <Body>
         <Searchbar onSubmit={this.searchSubmit} />
-        {this.state.searchArr.length > 0 ? (
+        {searchArr.length > 0 ? (
           <ImageGallery
-            searchArr={this.state.searchArr}
-            searchName={this.state.searchItem}
+            searchArr={searchArr}
+            searchName={searchItem}
             showModal={this.showModal}
           />
         ) : (
@@ -74,12 +86,14 @@ export class App extends Component {
             Image gallery is empty...
           </p>
         )}
-        {this.state.loading && <Loader />}
-        {this.state.searchArr.length > 0 && <Button pageUp={this.pageUp} />}
-        {this.state.isShowModal && (
+        {loading && <Loader />}
+        {searchArr.length !== totalSearchItems && (
+          <Button pageUp={this.pageUp} />
+        )}
+        {isShowModal && (
           <Modal
-            showPicture={this.state.showPicture}
-            searchName={this.state.searchItem}
+            showPicture={showPicture}
+            searchName={searchItem}
             closeModal={this.closeModal}
           />
         )}
